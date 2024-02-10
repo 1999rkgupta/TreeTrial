@@ -1,0 +1,84 @@
+#tree2 {
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+#tree2 .treeCont button {
+    background: transparent;
+    border: 1px solid #55555567;
+    border-radius: 5px;
+    padding: 0 1%;
+    cursor: pointer;
+}
+
+.subjectBranch>div>div>svg {
+    color: rgb(18, 85, 85);
+}
+
+#subjectBranch span:first-child {
+    display: inline-block;
+    /* background-color: rgb(176, 216, 216); */
+    width: 50%;
+}
+
+.studentBranch1 {
+    display: flex;
+    list-style: none;
+    padding-left: 4px;
+    font-size: small;
+}
+
+.treeHeader>ul {
+    display: flex !important;
+    list-style: none !important;
+    padding-left: 4px;
+    border-bottom: 1px ridge #5f5a5a28;
+}
+
+.treeHeader>ul>li {
+    width: 12.5%;
+    text-align: center;
+    color: green;
+    font-weight: 600;
+}
+
+.treeHeader>ul>li:first-child {
+    width: 50%;
+    text-align: left;
+}
+
+.chapterBranch>span:first-child {
+    display: inline-block;
+    width: 50%;
+    /* background-color: cadetblue; */
+}
+
+.topicBranch>span:first-child {
+    display: inline-block;
+    width: 50%;
+}
+
+button:disabled {
+    cursor: not-allowed !important;
+}
+
+
+.treeHeaderY>ul {
+    list-style: none;
+}
+
+.treeHeaderY>ul>li {
+    width: 12.5%;
+    text-align: center;
+    color: #f25620;
+    font-weight: 600;
+}
+
+.treeHeaderY>ul>li:first-child {
+    width: 50%;
+    text-align: left;
+}
+
+.treeHeader>ul>li:first-child {
+    width: 50%;
+    text-align: left;
+}

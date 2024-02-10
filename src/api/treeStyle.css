@@ -34,18 +34,6 @@
     border-bottom: 1px ridge #5f5a5a28;
 }
 
-.treeHeader>ul>li {
-    width: 12.5%;
-    text-align: center;
-    color: green;
-    font-weight: 600;
-}
-
-.treeHeader>ul>li:first-child {
-    width: 50%;
-    text-align: left;
-}
-
 .chapterBranch>span:first-child {
     display: inline-block;
     width: 50%;
@@ -69,7 +57,7 @@ button:disabled {
 .treeHeaderY>ul>li {
     width: 12.5%;
     text-align: center;
-    color: #f25620;
+    color: purple;
     font-weight: 600;
 }
 

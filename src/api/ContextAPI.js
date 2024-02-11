@@ -1,206 +1,225 @@
 import { createContext, useEffect, useState } from "react";
-import { toast } from "react-toastify";
 import AxiosInstance from "./AxiosInstance";
 
 export const TreeContext = createContext();
 
 export const TreeContextProvider = ({ children }) => {
-  const [subjects, setSubjects] = useState([]);
-  const [subjectLoad, setSubjectLoad] = useState(true);
-  const [taskType, setTaskType] = useState([]);
-  const [toggledNode, setToggledNode] = useState([]);
-  const [questionStatus, setQuestionStatus] = useState([]);
-  const [difficulty, setDifficulty] = useState([]);
-  // drop down states
+  const createLayer = (state, newKeys) => {
+    if (state) {
+      const uniqueKeys = newKeys.filter(e => !Object.keys(state).includes(e));
+      const obj = {};
+      uniqueKeys.forEach(e => {
+        obj[e] = {
+          data: [],
+          loading: false,
+          loadMore: false,
+          error: null,
+          length: 0,
+        };
+      });
+      return { ...state, ...obj };
+    } else {
+      const obj = {};
+      newKeys.forEach(e => {
+        obj[e] = {
+          data: [],
+          loading: false,
+          loadMore: false,
+          error: null,
+          length: 0,
+        };
+      });
+      return obj;
+    }
+  };
+
+  const [loadedOrg, setLoadedOrg] = useState([]);
+  const [organization, setOrganization] = useState({
+    data: [],
+    loading: false,
+    loadMore: false,
+    error: null,
+    length: 0,
+  });
   useEffect(() => {
-    setSubjectLoad(true);
-    let fetchBatch = async () => {
+    let fetchOrganization = async () => {
       try {
-        let { data } = await AxiosInstance.get(
-          "/v1/subjects?limit=10&show_question_count"
-        );
-        setSubjects(data.data);
-        let response = await AxiosInstance.get("/v1/type_of_task");
-        setTaskType(response.data.data);
-        let difficultyData = await AxiosInstance.get(
-          "/v1/question_difficulty_level"
-        );
-        setDifficulty(difficultyData.data.data);
-        let statusData = await AxiosInstance.get("/v1/question_status");
-        setQuestionStatus(statusData.data.data);
-        setSubjectLoad(false);
+        const { data } = await AxiosInstance.get(`/v1/subjects`);
+        setOrganization({
+          ...organization,
+          data: data.data && data.data.length > 0 ? data.data : null,
+          loading: false,
+          length: data.total_length,
+        });
+        const newKeys = data.data.map(e => e.id);
+        if (newKeys.length > 0) {
+          setBranches(createLayer(branches, newKeys));
+        }
       } catch (error) {
-        console.log(error);
-        setSubjectLoad(false);
+        setOrganization({
+          ...organization,
+          data: null,
+          error: error.response ? error.response.data.message : "Network issue",
+          loading: false,
+        });
       }
     };
-    fetchBatch();
+
+    fetchOrganization();
   }, []);
-
-  // fetch onclick States
-  const [chapters, setChapters] = useState([]);
-  const [topics, setTopics] = useState([]);
-  const [sub_topics, setSub_topics] = useState([]);
-  const [question, setQuestion] = useState([]);
-  const [loadChapter, setLoadChapter] = useState(false);
-  //fetch subject
-  const [loadQuestion, setLoadQuestion] = useState(false);
-  const fetchQuestion = async (group, ids, exl, task, status) => {
-    const concatUnique = (existing, newData) => {
-      newData.forEach(newObj => {
-        const exists = existing.some(
-          existingObj => existingObj.ID === newObj.ID
-        );
-        if (!exists) {
-          existing.push(newObj);
-        }
-      });
-
-      return existing;
-    };
-    setLoadQuestion(true);
+  const fetchMoreOrg = async () => {
+    setOrganization({ ...organization, loadMore: true });
+    const page = Math.ceil(organization.data.length / 10) + 1;
     try {
-      if (status) {
-        const { data } = await AxiosInstance.get(
-          exl !== null
-            ? `/v1/questions?limit=100&${group}=${ids}&${exl}&${task}&${status}`
-            : `/v1/questions?limit=100&${group}=${ids}&${task}&${status}`
-        );
-        setQuestion(
-          data.data.length > 0 ? concatUnique(question, data.data) : question
-        );
-        setLoadQuestion(false);
-      } else {
-        const { data } = await AxiosInstance.get(
-          exl !== null
-            ? `/v1/questions?limit=100&${group}=${ids}&${exl}&${task}`
-            : `/v1/questions?limit=100&${group}=${ids}&${task}`
-        );
-        setQuestion(
-          data.data.length > 0 ? concatUnique(question, data.data) : question
-        );
-        setLoadQuestion(false);
+      const { data } = await AxiosInstance.get(`/v1/subjects?page=${page}`);
+      setOrganization({
+        ...organization,
+        data:
+          data.data.length > 0
+            ? [...organization.data, ...data.data]
+            : organization.data,
+        loadMore: false,
+        length: data.total_length,
+      });
+      const newKeys = data.data.map(e => e.id);
+      if (newKeys.length > 0) {
+        setBranches(createLayer(branches, newKeys));
       }
     } catch (error) {
-      if (error.response) {
-        toast.error(error.response.error.message);
-        setLoadQuestion(false);
-        //   setQuestion(null);
-      } else {
-        toast.error("Something went wrong");
-        console.log(error);
-        setLoadQuestion(false);
-        //   setQuestion(null);
-      }
+      setOrganization({
+        ...organization,
+        loadMore: null,
+        error: error.response ? error?.response?.data?.error : "Network issue",
+      });
     }
   };
-  //fetch Chapter
-  const [loadedChapter, setLoadedChapter] = useState([]);
-  const fetchChapter = async (id, name) => {
-    if (!toggledNode.includes(name)) {
-      if (chapters.length === 0) {
-        setLoadedChapter(true);
-        const { data } = await AxiosInstance.get(
-          `/v1/chapter_list?limit=50&subject_id=${id}&show_question_count`
-        );
-        setChapters([...chapters, ...data.data]);
-        setLoadedChapter([...loadedChapter, id]);
-      } else if (
-        subjects.length > 0 &&
-        loadedChapter.length > 0 &&
-        loadedChapter.filter(ex => ex === id).length === 0
-      ) {
-        setLoadChapter(true);
-        const { data } = await AxiosInstance.get(
-          `/v1/chapter_list?limit=50&subject_id=${id}&show_question_count`
-        );
-        setChapters([...chapters, ...data.data]);
-        setLoadedChapter([...loadedChapter, id]);
-        setLoadChapter(false);
+  //! Organization and its Logic ends
+  const fetchMoreState = async (id, state, setState, group, parent) => {
+    const page = Math.ceil(state[id].data.length / 10) + 1;
+    const payload = { ...state };
+    payload[id] = { ...payload[id], loadMore: true };
+    setState({ ...payload });
+    try {
+      const { data } = await AxiosInstance.get(
+        `/v1/${group}?${parent}=${id}&page=${page}`
+      );
+      const payload = { ...state };
+      payload[id] = {
+        ...payload[id],
+        data:
+          data.data.length > 0
+            ? [...payload[id].data, ...data.data]
+            : payload[id].data,
+        length: data.total_length,
+        loadMore: false,
+      };
+      setState({ ...payload });
+      const newKeys = data.data.map(e => e.id);
+      if (newKeys.length > 0) {
+        if (group === "subjects") {
+          setBranches(createLayer(branches, [id]));
+        } else if (group === "chapter_") {
+          setBatches(createLayer(batches, [id]));
+        }
       }
+    } catch (error) {
+      console.log(error);
+      const payload = { ...state };
+      payload[id] = {
+        ...payload[id],
+        loadMore: null,
+        error: error.response ? error?.response?.data?.error : "Network issue",
+      };
+      setState({ ...payload });
     }
   };
-  //fetch Topic
-  const [loadedTopic, setLoadedTopic] = useState([]);
-  const [loadTopic, setLoadTopic] = useState(false);
-  const fetchTopic = async (id, name) => {
-    if (!toggledNode.includes(name)) {
-      if (topics.length === 0) {
-        setLoadTopic(true);
-        const { data } = await AxiosInstance.get(
-          `/v1/topic_list?limit=50&chapter_id=${id}&show_question_count`
-        );
-        setTopics([...topics, ...data.data]);
-        setLoadedTopic([...loadedTopic, id]);
-        setLoadTopic(false);
-      } else if (
-        subjects.length > 0 &&
-        loadedTopic.length > 0 &&
-        loadedTopic.filter(ex => ex === id).length === 0
-      ) {
-        setLoadTopic(true);
-        const { data } = await AxiosInstance.get(
-          `/v1/topic_list?limit=50&chapter_id=${id}&show_question_count`
-        );
-        setTopics([...topics, ...data.data]);
-        setLoadedTopic([...loadedTopic, id]);
-        setLoadTopic(false);
+
+  //! Branch and its Logic Starts
+  const [branches, setBranches] = useState(null);
+  const [loadedBranches, setLoadedBranches] = useState([]);
+
+  const fetchBranches = async id => {
+    const updatedState = { ...branches };
+    updatedState[id] = { ...updatedState[id], loading: true };
+    setBranches(updatedState);
+    try {
+      const { data } = await AxiosInstance.get(
+        `/v1/chapter_list?subject_id=${id}`
+      );
+      const updatedState = { ...branches };
+      updatedState[id] = {
+        ...updatedState[id],
+        loading: false,
+        data: data.data.length > 0 ? data.data : null,
+        length: data.total_length,
+      };
+      setBranches(updatedState);
+      const newKeys = data.data.map(e => e.id);
+      if (newKeys.length > 0) {
+        setBatches(createLayer(batches, [id]));
       }
+    } catch (error) {
+      const updatedState = { ...branches };
+      updatedState[id] = {
+        ...updatedState[id],
+        loading: false,
+        error: error.response ? error?.response?.data?.error : "Network issue",
+        data: null,
+      };
+      setBranches(updatedState);
     }
   };
-  //fetch Sub Topic
-  const [loadedSubTopic, setLoadedSubTopic] = useState([]);
-  const [loadSubTopic, setLoadSubTopic] = useState(false);
-  const fetchSubTopic = async (id, name) => {
-    if (!toggledNode.includes(name)) {
-      if (sub_topics.length === 0) {
-        setLoadSubTopic(true);
-        const { data } = await AxiosInstance.get(
-          `/v1/sub_topic_list?limit=50&topic_id=${id}&show_question_count`
-        );
-        setSub_topics([...sub_topics, ...data.data]);
-        setLoadedSubTopic([...loadedTopic, id]);
-        setLoadSubTopic(false);
-      } else if (
-        loadedTopic.length > 0 &&
-        loadedSubTopic.length > 0 &&
-        loadedSubTopic.filter(ex => ex === id).length === 0
-      ) {
-        setLoadSubTopic(true);
-        const { data } = await AxiosInstance.get(
-          `v1/sub_topic_list?limit=50&topic_id=${id}&show_question_count`
-        );
-        setSub_topics([...sub_topics, ...data.data]);
-        setLoadedSubTopic([...loadedTopic, id]);
-        setLoadSubTopic(false);
-      }
+  //! Branch and its Logic ends
+
+  // //! Batch and its Logic Starts
+  const [batches, setBatches] = useState(null);
+  const [loadedBatches, setLoadedBatches] = useState([]);
+  const fetchBatches = async id => {
+    const updatedState = { ...batches };
+    updatedState[id] = { ...updatedState[id], loading: true };
+    setBatches(updatedState);
+    try {
+      const { data } = await AxiosInstance.get(
+        `/v1/topic_list?chapter_id=${id}`
+      );
+      const updatedState = { ...batches };
+      updatedState[id] = {
+        ...updatedState[id],
+        loading: false,
+        data: data.data.length > 0 ? data.data : null,
+        length: data.total_length,
+      };
+      setBatches(updatedState);
+    } catch (error) {
+      const updatedState = { ...batches };
+      updatedState[id] = {
+        ...updatedState[id],
+        loading: false,
+        error: error.response ? error?.response?.data?.error : "Network issue",
+        data: null,
+      };
+      setBatches(updatedState);
     }
   };
-  return (
-    <TreeContext.Provider
-      value={{
-        subjectLoad,
-        subjects,
-        toggledNode,
-        setToggledNode,
-        taskType,
-        questionStatus,
-        difficulty,
-        fetchChapter,
-        chapters,
-        loadChapter,
-        fetchTopic,
-        topics,
-        loadTopic,
-        fetchSubTopic,
-        sub_topics,
-        loadSubTopic,
-        question,
-        loadQuestion,
-        fetchQuestion,
-      }}
-    >
-      {children}
-    </TreeContext.Provider>
-  );
+  // //! Batch and its Logic ends
+
+  const [toggledNode, setToggledNode] = useState([]);
+
+  //Tree view call backs
+  const handleSelect = (x, y) => {
+    const nodeId = y.split("@@")[1].split("#")[1];
+    const nodeName = y.split("@@")[1].split("#")[0];
+    if (nodeName === "subject" && !loadedOrg.includes(nodeId)) {
+      fetchBranches(nodeId);
+      setLoadedOrg([...loadedOrg, nodeId]);
+    } else if (nodeName === "chapter" && !loadedBranches.includes(nodeId)) {
+      fetchBatches(nodeId, y);
+      setLoadedBranches([...loadedBatches, nodeId]);
+    } else if (nodeName === "topic" && !loadedBatches.includes(nodeId)) {
+      // fetchSubtopic(nodeId, y);
+      setLoadedBatches([...loadedBatches, nodeId]);
+    }
+  };
+
+  return <TreeContext.Provider value={{}}>{children}</TreeContext.Provider>;
 };

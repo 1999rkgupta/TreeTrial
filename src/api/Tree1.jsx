@@ -108,7 +108,7 @@ const createLayer = (state, newKeys) => {
 };
 //? Actual Component
 let Tree1 = () => {
-  //! Subjects and its Logic Starts
+  //! Organization and its Logic Starts
   const [loadedOrg, setLoadedOrg] = useState([]);
   const [organization, setOrganization] = useState({
     data: [],
@@ -169,7 +169,7 @@ let Tree1 = () => {
       });
     }
   };
-  //! Subjects and its Logic ends
+  //! Organization and its Logic ends
   const fetchMoreState = async (id, state, setState, group, parent) => {
     const page = Math.ceil(state[id].data.length / 10) + 1;
     const payload = { ...state };
@@ -196,8 +196,6 @@ let Tree1 = () => {
           setBranches(createLayer(branches, [id]));
         } else if (group === "chapter_") {
           setBatches(createLayer(batches, [id]));
-        } else if (group === "topics") {
-          setSub_topics(createLayer(sub_topics, [id]));
         }
       }
     } catch (error) {
@@ -212,9 +210,9 @@ let Tree1 = () => {
     }
   };
 
-  //! Chapters and its Logic Starts
+  //! Branch and its Logic Starts
   const [branches, setBranches] = useState(null);
-  const [loadedChapters, setLoadedChapters] = useState([]);
+  const [loadedBranches, setLoadedBranches] = useState([]);
 
   const fetchBranches = async id => {
     const updatedState = { ...branches };
@@ -247,12 +245,12 @@ let Tree1 = () => {
       setBranches(updatedState);
     }
   };
-  //! Chapters and its Logic ends
-  // for common
-  // //! Topics and its Logic Starts
+  //! Branch and its Logic ends
+
+  // //! Batch and its Logic Starts
   const [batches, setBatches] = useState(null);
-  const [loadedTopics, setLoadedTopics] = useState([]);
-  const fetchTopic = async id => {
+  const [loadedBatches, setLoadedBatches] = useState([]);
+  const fetchBatches = async id => {
     const updatedState = { ...batches };
     updatedState[id] = { ...updatedState[id], loading: true };
     setBatches(updatedState);
@@ -268,10 +266,6 @@ let Tree1 = () => {
         length: data.total_length,
       };
       setBatches(updatedState);
-      const newKeys = data.data.map(e => e.id);
-      if (newKeys.length > 0) {
-        setSub_topics(createLayer(sub_topics, [id]));
-      }
     } catch (error) {
       const updatedState = { ...batches };
       updatedState[id] = {
@@ -283,39 +277,7 @@ let Tree1 = () => {
       setBatches(updatedState);
     }
   };
-  // //! Topics and its Logic ends
-
-  // //! Subtopics and its Logic Starts
-  const [sub_topics, setSub_topics] = useState([]);
-  const [loadedSubtopics, setLoadedSubtopics] = useState([]);
-  const fetchSubtopic = async id => {
-    const updatedState = { ...sub_topics };
-    updatedState[id] = { ...updatedState[id], loading: true };
-    setSub_topics(updatedState);
-    try {
-      const { data } = await AxiosInstance.get(
-        `/v1/sub_topic_list?topic_id=${id}`
-      );
-      const updatedState = { ...sub_topics };
-      updatedState[id] = {
-        ...updatedState[id],
-        loading: false,
-        data: data.data.length > 0 ? data.data : null,
-        length: data.total_length,
-      };
-      setSub_topics(updatedState);
-    } catch (error) {
-      const updatedState = { ...sub_topics };
-      updatedState[id] = {
-        ...updatedState[id],
-        loading: false,
-        error: error.response ? error?.response?.data?.error : "Network issue",
-        data: null,
-      };
-      setSub_topics(updatedState);
-    }
-  };
-  // //! Subtopics and its Logic ends
+  // //! Batch and its Logic ends
 
   const [toggledNode, setToggledNode] = useState([]);
 
@@ -326,17 +288,15 @@ let Tree1 = () => {
     if (nodeName === "subject" && !loadedOrg.includes(nodeId)) {
       fetchBranches(nodeId);
       setLoadedOrg([...loadedOrg, nodeId]);
-    } else if (nodeName === "chapter" && !loadedChapters.includes(nodeId)) {
-      fetchTopic(nodeId, y);
-      setLoadedChapters([...loadedTopics, nodeId]);
-    } else if (nodeName === "topic" && !loadedTopics.includes(nodeId)) {
-      fetchSubtopic(nodeId, y);
-      setLoadedTopics([...loadedTopics, nodeId]);
-    } else if (nodeName === "sub_topic" && !loadedSubtopics.includes(nodeId)) {
-      setLoadedSubtopics([...loadedSubtopics, nodeId]);
+    } else if (nodeName === "chapter" && !loadedBranches.includes(nodeId)) {
+      fetchBatches(nodeId, y);
+      setLoadedBranches([...loadedBatches, nodeId]);
+    } else if (nodeName === "topic" && !loadedBatches.includes(nodeId)) {
+      // fetchSubtopic(nodeId, y);
+      setLoadedBatches([...loadedBatches, nodeId]);
     }
   };
-  // //! Videos and its Logic Starts
+
   return (
     <section style={{ width: "100%", position: "relative" }} id="tree2">
       <TreeView
@@ -380,7 +340,7 @@ let Tree1 = () => {
               <>
                 <header className="treeHeaderY">
                   <ul>
-                    <li>Branch</li>
+                    <li>Organization</li>
                   </ul>
                 </header>
                 {organization.data.map(org => {
@@ -423,7 +383,7 @@ let Tree1 = () => {
                                           label={
                                             <section id="chapterBranch">
                                               <span
-                                                title={`Chapter - ${brn.name}`}
+                                                title={`Branch - ${brn.name}`}
                                               >
                                                 {brn.name}
                                               </span>
@@ -444,8 +404,7 @@ let Tree1 = () => {
                                                     >
                                                       Loading..
                                                     </small>
-                                                  ) : batches[brn.id].data ||
-                                                    batches[brn.id].video ? (
+                                                  ) : batches[brn.id].data ? (
                                                     <>
                                                       {batches[brn.id].data ? (
                                                         batches[
@@ -459,7 +418,7 @@ let Tree1 = () => {
                                                               label={
                                                                 <section id="chapterBranch">
                                                                   <span
-                                                                    title={`Topic - ${bat.name}`}
+                                                                    title={`Batch - ${bat.name}`}
                                                                   >
                                                                     {bat.name}
                                                                   </span>
@@ -503,7 +462,7 @@ let Tree1 = () => {
                                                             title={
                                                               !batches[brn.id]
                                                                 .loadMore
-                                                                ? "Click to loadMore topics"
+                                                                ? "Click to loadMore Batches"
                                                                 : ""
                                                             }
                                                             style={{
